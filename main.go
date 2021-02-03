@@ -6,14 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-ini/ini"
 	"github.com/golang/glog"
-	"log"
 )
 
 func ParseConfig() {
 	cfg = new(Cfg)
 	cfgFile, err := ini.Load("config/config.ini")
 	if err != nil {
-		log.Fatal("Fail to read file: ", err)
+		glog.Fatal("Fail to read file: ", err)
 	}
 	cfg.HttpPort = cfgFile.Section("http server").Key("port").String()
 	sc := new(Sc)
@@ -32,11 +31,11 @@ func main() {
 			"msg": "pong",
 		})
 	})
-	r.GET("/message", func(c *gin.Context) {
+	r.GET("/push", func(c *gin.Context) {
 		way := c.DefaultQuery("way", "sc")
 		title := c.DefaultQuery("title", "")
 		content := c.DefaultQuery("content", "")
-
+		glog.Info("receive message,way:", way, ",title:", title, ",content:", content)
 		if title == "" {
 			c.JSON(400, gin.H{
 				"msg": "Required fields are missing",
