@@ -35,24 +35,31 @@ func main() {
 		way := c.DefaultQuery("way", "sc")
 		title := c.DefaultQuery("title", "")
 		content := c.DefaultQuery("content", "")
+		original := c.DefaultQuery("original", "0")
 		glog.Info("receive message,way:", way, ",title:", title, ",content:", content)
 		if title == "" {
 			c.JSON(400, gin.H{
 				"msg": "Required fields are missing",
 			})
+			return
 		}
 
 		message := Message{
-			Title:   title,
-			Content: content,
+			Title:    title,
+			Content:  content,
+			Original: original,
 		}
 
+		var result interface{}
 		if way == "sc" {
-			DoConsumeMsg(message)
+			result = DoConsumeMsg(message)
+			if original == "0" {
+				c.JSON(200, result)
+				return
+			}
+			c.String(200, fmt.Sprintf("%v", result))
+			return
 		}
-		c.JSON(200, gin.H{
-			"msg": "ok",
-		})
 	})
 	r.Run(":" + cfg.HttpPort) // listen and serve on 0.0.0.0:8080
 }

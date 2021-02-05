@@ -14,6 +14,7 @@ type Sc struct {
 }
 
 type Message struct {
-	Title   string
-	Content string
+	Title    string
+	Content  string
+	Original string
 }

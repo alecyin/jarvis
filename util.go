@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/golang/glog"
+	"io/ioutil"
 	"log"
 	"net/http"
 )
@@ -71,4 +73,37 @@ func Post(url string, body interface{}, params map[string]string, headers map[st
 	client := &http.Client{}
 	log.Printf("Go %s URL : %s \n", http.MethodPost, req.URL.String())
 	return client.Do(req)
+}
+
+// Convert json string to map
+func JsonToMap(jsonStr string) (map[string]string, error) {
+	m := make(map[string]string)
+	err := json.Unmarshal([]byte(jsonStr), &m)
+	if err != nil {
+		glog.Error("Unmarshal with error: ", err)
+		return nil, err
+	}
+
+	return m, nil
+}
+
+// Convert map json string
+func MapToJson(m map[string]string) (string, error) {
+	jsonByte, err := json.Marshal(m)
+	if err != nil {
+		glog.Error("Marshal with error: ", err)
+		return "", nil
+	}
+
+	return string(jsonByte), nil
+}
+
+func ParseResponse(response *http.Response) (map[string]interface{}, error) {
+	var result map[string]interface{}
+	body, err := ioutil.ReadAll(response.Body)
+	if err == nil {
+		err = json.Unmarshal(body, &result)
+	}
+
+	return result, err
 }
