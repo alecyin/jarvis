@@ -8,9 +8,14 @@ import (
 	"github.com/golang/glog"
 )
 
+const (
+	configFilePath = "./config/config_new.ini"
+	recordFilePath = "record/record.txt"
+)
+
 func ParseConfig() {
 	cfg = new(Cfg)
-	cfgFile, err := ini.Load("config/config_new.ini")
+	cfgFile, err := ini.Load(configFilePath)
 	if err != nil {
 		glog.Fatal("Fail to read file: ", err)
 	}
@@ -27,9 +32,8 @@ func ParseConfig() {
 
 func main() {
 	flag.Parse()
-	glog.Info("start")
 	ParseConfig()
-	fmt.Println("port:", cfg.HttpPort)
+	glog.Info("port:", cfg.HttpPort)
 	r := gin.Default()
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -48,7 +52,6 @@ func main() {
 			})
 			return
 		}
-
 		message := Message{
 			Title:    title,
 			Content:  content,
@@ -62,6 +65,7 @@ func main() {
 			message.MailName = c.DefaultQuery("name", "")
 			consumer.setWay(&QqMail{})
 		}
+		go RecordMessage(message)
 		result := consumer.Send(message)
 		if original == "0" { // dismiss original result
 			c.JSON(200, result)

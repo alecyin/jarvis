@@ -30,8 +30,8 @@ type Cfg struct {
 }
 
 type Message struct {
-	Title    string
-	Content  string
-	Original string
-	MailName string
+	Title    string `json:"title"`
+	Content  string `json:"content"`
+	Original string `json:"original"`
+	MailName string `json:"mailName"`
 }
