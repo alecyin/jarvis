@@ -8,7 +8,11 @@ import (
 
 const url = "https://sc.ftqq.com/"
 
-func (sc Sc) ConsumeMsg(message Message) interface{} {
+type Sc struct {
+	Sckey string
+}
+
+func (*Sc) ConsumeMsg(message Message) interface{} {
 	if cfg == nil || len(cfg.Scs) == 0 {
 		glog.Fatal("none of sc config")
 	}

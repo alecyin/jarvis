@@ -54,27 +54,21 @@ func main() {
 			Content:  content,
 			Original: original,
 		}
-
-		var result interface{}
+		// choose strategic
+		var consumer Consumer
 		if way == "sc" {
-			var sc Sc
-			result = sc.ConsumeMsg(message)
-			if original == "0" {
-				c.JSON(200, result)
-				return
-			}
-			c.String(200, fmt.Sprintf("%v", result))
-			return
+			consumer.setWay(&Sc{})
+		} else if way == "qqmail" {
+			message.MailName = c.DefaultQuery("name", "")
+			consumer.setWay(&QqMail{})
 		}
-
-		if way == "qqmail" {
-			mailName := c.DefaultQuery("name", "")
-			message.MailName = mailName
-			var qqMail QqMail
-			result = qqMail.ConsumeMsg(message)
+		result := consumer.Send(message)
+		if original == "0" { // dismiss original result
 			c.JSON(200, result)
 			return
 		}
+		c.String(200, fmt.Sprintf("%v", result))
+		return
 	})
-	r.Run(":" + cfg.HttpPort) // listen and serve on 0.0.0.0:8080
+	r.Run(":" + cfg.HttpPort)
 }

@@ -9,14 +9,21 @@ import (
 const qqSmtpHost = "smtp.qq.com"
 const qqSmtpPort = ":587"
 
-func (qqMail QqMail) ConsumeMsg(message Message) interface{} {
+type QqMail struct {
+	FromAccount string
+	AuthCode    string
+	ToAccount   string
+}
+
+func (*QqMail) ConsumeMsg(message Message) interface{} {
 	if cfg == nil || len(cfg.Scs) == 0 {
 		glog.Fatal("none of sc config")
 	}
 
-	fromAccount := cfg.QqMails[0].FromAccount
-	toAccount := cfg.QqMails[0].ToAccount
-	authCode := cfg.QqMails[0].AuthCode
+	qqMail := cfg.QqMails[0]
+	fromAccount := qqMail.FromAccount
+	toAccount := qqMail.ToAccount
+	authCode := qqMail.AuthCode
 
 	to := []string{toAccount}
 	contentType := "Content-Type: text/plain; charset=UTF-8"
