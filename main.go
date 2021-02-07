@@ -10,7 +10,7 @@ import (
 
 func ParseConfig() {
 	cfg = new(Cfg)
-	cfgFile, err := ini.Load("config/config.ini")
+	cfgFile, err := ini.Load("config/config_new.ini")
 	if err != nil {
 		glog.Fatal("Fail to read file: ", err)
 	}
@@ -18,6 +18,11 @@ func ParseConfig() {
 	sc := new(Sc)
 	sc.Sckey = cfgFile.Section("sc").Key("SCKEY").String()
 	cfg.Scs = append(cfg.Scs, *sc)
+	qqMail := new(QqMail)
+	qqMail.FromAccount = cfgFile.Section("qq_mail").Key("from_account").String()
+	qqMail.ToAccount = cfgFile.Section("qq_mail").Key("to_account").String()
+	qqMail.AuthCode = cfgFile.Section("qq_mail").Key("auth_code").String()
+	cfg.QqMails = append(cfg.QqMails, *qqMail)
 }
 
 func main() {
@@ -52,12 +57,22 @@ func main() {
 
 		var result interface{}
 		if way == "sc" {
-			result = DoConsumeMsg(message)
+			var sc Sc
+			result = sc.ConsumeMsg(message)
 			if original == "0" {
 				c.JSON(200, result)
 				return
 			}
 			c.String(200, fmt.Sprintf("%v", result))
+			return
+		}
+
+		if way == "qqmail" {
+			mailName := c.DefaultQuery("name", "")
+			message.MailName = mailName
+			var qqMail QqMail
+			result = qqMail.ConsumeMsg(message)
+			c.JSON(200, result)
 			return
 		}
 	})

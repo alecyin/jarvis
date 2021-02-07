@@ -8,7 +8,7 @@ import (
 
 const url = "https://sc.ftqq.com/"
 
-func DoConsumeMsg(message Message) interface{} {
+func (sc Sc) ConsumeMsg(message Message) interface{} {
 	if cfg == nil || len(cfg.Scs) == 0 {
 		glog.Fatal("none of sc config")
 	}
@@ -24,13 +24,11 @@ func DoConsumeMsg(message Message) interface{} {
 	}
 	//dismiss original result
 	if message.Original == "0" {
-		returnMap, _ := ParseResponse(res)
-		if fmt.Sprintf("%v", returnMap["errno"]) == "0" { //success
-			formatMap := map[string]int{"code": 0}
-			return formatMap
+		res, _ := ParseResponse(res)
+		if fmt.Sprintf("%v", res["errno"]) == "0" { //success
+			return success
 		}
-		formatMap := map[string]int{"code": -1}
-		return formatMap
+		return failure
 	}
 
 	body, _ := ioutil.ReadAll(res.Body)
