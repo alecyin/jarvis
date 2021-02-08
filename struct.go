@@ -24,10 +24,11 @@ type Way interface {
 }
 
 type Cfg struct {
-	HttpPort string
-	BotApi   BotApi
-	Scs      []Sc
-	QqMails  []QqMail
+	HttpPort      string
+	BotApi        BotApi
+	SsrConfigFile string
+	Scs           []Sc
+	QqMails       []QqMail
 }
 
 type Message struct {

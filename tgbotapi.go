@@ -2,9 +2,11 @@ package main
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"log"
+	"github.com/golang/glog"
 	"net/http"
 	"net/url"
+	"os"
+	"time"
 )
 
 type BotApi struct {
@@ -12,18 +14,29 @@ type BotApi struct {
 	Token     string
 }
 
+func setProxy() {
+	os.Setenv("http_proxy", cfg.BotApi.ProxyAddr)
+	os.Setenv("https_proxy", cfg.BotApi.ProxyAddr)
+}
+func unsetProxy() {
+	os.Unsetenv("http_proxy")
+	os.Unsetenv("https_proxy")
+}
 func RunTgBotApi() {
+	//setProxy()
+	//defer unsetProxy()
 	transport := &http.Transport{Proxy: func(_ *http.Request) (*url.URL, error) {
 		return url.Parse(cfg.BotApi.ProxyAddr)
 	}}
-	bot, err := tgbotapi.NewBotAPIWithClient(cfg.BotApi.Token, &http.Client{Transport: transport})
+	bot, err := tgbotapi.NewBotAPIWithClient(cfg.BotApi.Token, &http.Client{Transport: transport, Timeout: 10 * time.Second})
 	if err != nil {
-		log.Panic(err)
+		glog.Error(err)
+		return
 	}
 
 	bot.Debug = true
 
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+	glog.Info("Authorized on account %s", bot.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -35,11 +48,17 @@ func RunTgBotApi() {
 			continue
 		}
 
-		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+		glog.Info("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-		msg.ReplyToMessageID = update.Message.MessageID
-
+		if update.Message.Text == "切换节点" {
+			if ChangeNode() {
+				msg.Text = "done"
+			} else {
+				msg.Text = "failure"
+			}
+		}
+		//msg.ReplyToMessageID = update.Message.MessageID
 		bot.Send(msg)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
 func Get(url string, params map[string]string, headers map[string]string) (*http.Response, error) {
@@ -106,4 +107,26 @@ func ParseResponse(response *http.Response) (map[string]interface{}, error) {
 	}
 
 	return result, err
+}
+
+func ReadTotalFile(path string) ([]byte, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	return ioutil.ReadAll(file)
+}
+
+func WriteCoverFile(path string, content string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.WriteString(content)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	configFilePath = "./config/config_new.ini"
-	recordFilePath = "record/record.txt"
+	configFilePath  = "config/config_new.ini"
+	recordFilePath  = "record/record.txt"
+	ssrNodeFilePath = "config/ssr.yml"
 )
 
 func ParseConfig() {
@@ -34,6 +35,8 @@ func ParseConfig() {
 	proxyAddr := cfgFile.Section("tg_bot").Key("proxy_addr").String()
 	token := cfgFile.Section("tg_bot").Key("token").String()
 	cfg.BotApi = BotApi{ProxyAddr: proxyAddr, Token: token}
+
+	cfg.SsrConfigFile = cfgFile.Section("ssr").Key("config_file").String()
 }
 
 func waitExit() {
@@ -53,8 +56,9 @@ func waitExit() {
 
 func main() {
 	flag.Parse()
+	defer glog.Flush()
 	ParseConfig()
-	//go RunHttpApi()
+	go RunHttpApi()
 	go RunTgBotApi()
 	waitExit()
 }

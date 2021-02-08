@@ -17,17 +17,17 @@ func prepare() (*os.File, error) {
 func RecordMessage(message Message) {
 	f, err := prepare()
 	if err != nil {
-		glog.Error("record file open error, %v", err)
+		glog.Error("record file open error, ", err)
 		return
 	}
 	defer f.Close()
 	msg, err := json.Marshal(message)
 	if err != nil {
-		glog.Error("convert json error, %v", err)
+		glog.Error("convert json error, ", err)
 		return
 	}
 	if _, err = io.WriteString(f, string(msg)+"\n"); err != nil {
-		glog.Error("write record file error, %v", err)
+		glog.Error("write record file error, ", err)
 		return
 	}
 	glog.Info("write to record file success")
