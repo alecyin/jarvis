@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"github.com/go-ini/ini"
 	"github.com/golang/glog"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 const (
@@ -20,59 +22,39 @@ func ParseConfig() {
 		glog.Fatal("Fail to read file: ", err)
 	}
 	cfg.HttpPort = cfgFile.Section("http server").Key("port").String()
-	sc := new(Sc)
-	sc.Sckey = cfgFile.Section("sc").Key("SCKEY").String()
-	cfg.Scs = append(cfg.Scs, *sc)
-	qqMail := new(QqMail)
-	qqMail.FromAccount = cfgFile.Section("qq_mail").Key("from_account").String()
-	qqMail.ToAccount = cfgFile.Section("qq_mail").Key("to_account").String()
-	qqMail.AuthCode = cfgFile.Section("qq_mail").Key("auth_code").String()
-	cfg.QqMails = append(cfg.QqMails, *qqMail)
+	// sc
+	sckey := cfgFile.Section("sc").Key("SCKEY").String()
+	cfg.Scs = append(cfg.Scs, Sc{Sckey: sckey})
+	// qq mail
+	fromAccount := cfgFile.Section("qq_mail").Key("from_account").String()
+	toAccount := cfgFile.Section("qq_mail").Key("to_account").String()
+	authCode := cfgFile.Section("qq_mail").Key("auth_code").String()
+	cfg.QqMails = append(cfg.QqMails, QqMail{FromAccount: fromAccount, ToAccount: toAccount, AuthCode: authCode})
+	//tg bot
+	proxyAddr := cfgFile.Section("tg_bot").Key("proxy_addr").String()
+	token := cfgFile.Section("tg_bot").Key("token").String()
+	cfg.BotApi = BotApi{ProxyAddr: proxyAddr, Token: token}
+}
+
+func waitExit() {
+	c := make(chan os.Signal)
+	//ctrl+c kill
+	signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	for s := range c {
+		switch s {
+		case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+			glog.Info("exit", s)
+			fmt.Print("exit")
+		default:
+			glog.Info("other", s)
+		}
+	}
 }
 
 func main() {
 	flag.Parse()
 	ParseConfig()
-	glog.Info("port:", cfg.HttpPort)
-	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"msg": "pong",
-		})
-	})
-	r.GET("/push", func(c *gin.Context) {
-		way := c.DefaultQuery("way", "sc")
-		title := c.DefaultQuery("title", "")
-		content := c.DefaultQuery("content", "")
-		original := c.DefaultQuery("original", "0")
-		glog.Info("receive message,way:", way, ",title:", title, ",content:", content)
-		if title == "" {
-			c.JSON(400, gin.H{
-				"msg": "Required fields are missing",
-			})
-			return
-		}
-		message := Message{
-			Title:    title,
-			Content:  content,
-			Original: original,
-		}
-		// choose strategic
-		var consumer Consumer
-		if way == "sc" {
-			consumer.setWay(&Sc{})
-		} else if way == "qqmail" {
-			message.MailName = c.DefaultQuery("name", "")
-			consumer.setWay(&QqMail{})
-		}
-		go RecordMessage(message)
-		result := consumer.Send(message)
-		if original == "0" { // dismiss original result
-			c.JSON(200, result)
-			return
-		}
-		c.String(200, fmt.Sprintf("%v", result))
-		return
-	})
-	r.Run(":" + cfg.HttpPort)
+	//go RunHttpApi()
+	go RunTgBotApi()
+	waitExit()
 }

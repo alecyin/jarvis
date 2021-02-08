@@ -25,6 +25,7 @@ type Way interface {
 
 type Cfg struct {
 	HttpPort string
+	BotApi   BotApi
 	Scs      []Sc
 	QqMails  []QqMail
 }

@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 )
 
-const url = "https://sc.ftqq.com/"
+const scApiUrl = "https://sc.ftqq.com/"
 
 type Sc struct {
 	Sckey string
@@ -17,7 +17,7 @@ func (*Sc) ConsumeMsg(message Message) interface{} {
 		glog.Fatal("none of sc config")
 	}
 	sckey := cfg.Scs[0].Sckey
-	scUrl := url + sckey + ".send"
+	scUrl := scApiUrl + sckey + ".send"
 	params := make(map[string]string)
 	params["text"] = message.Title
 	params["desp"] = message.Content
