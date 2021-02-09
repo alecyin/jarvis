@@ -9,41 +9,45 @@ import (
 	"time"
 )
 
-type BotApi struct {
+type TgBot struct {
 	ProxyAddr string
 	Token     string
 	ChatId    int64
+	TgApiUrl  string
+	*tgbotapi.BotAPI
 }
 
 func setProxy() {
-	os.Setenv("http_proxy", cfg.BotApi.ProxyAddr)
-	os.Setenv("https_proxy", cfg.BotApi.ProxyAddr)
+	os.Setenv("http_proxy", cfg.TgBot.ProxyAddr)
+	os.Setenv("https_proxy", cfg.TgBot.ProxyAddr)
 }
 func unsetProxy() {
 	os.Unsetenv("http_proxy")
 	os.Unsetenv("https_proxy")
 }
-func RunTgBotApi() {
+func (tgBot *TgBot) Run() {
 	//setProxy()
 	//defer unsetProxy()
+	// new bot api
 	transport := &http.Transport{Proxy: func(_ *http.Request) (*url.URL, error) {
-		return url.Parse(cfg.BotApi.ProxyAddr)
+		return url.Parse(cfg.TgBot.ProxyAddr)
 	}}
-	bot, err := tgbotapi.NewBotAPIWithClient(cfg.BotApi.Token, &http.Client{Transport: transport, Timeout: 10 * time.Second})
+	bot, err := tgbotapi.NewBotAPIWithClient(cfg.TgBot.Token, &http.Client{Transport: transport, Timeout: 10 * time.Second})
 	if err != nil {
 		glog.Error(err)
 		return
 	}
-
 	bot.Debug = true
-
+	tgBot.BotAPI = bot
 	glog.Info("Authorized on account %s", bot.Self.UserName)
+	tgBot.listen()
+}
 
+func (tgBot *TgBot) listen() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-	//msg := tgbotapi.NewMessage(cfg.BotApi.ChatId, "推送")
-	//bot.Send(msg)
-	updates, err := bot.GetUpdatesChan(u)
+
+	updates, _ := tgBot.GetUpdatesChan(u)
 
 	for update := range updates {
 		if update.Message == nil { // ignore any non-Message Updates
@@ -61,6 +65,7 @@ func RunTgBotApi() {
 			}
 		}
 		//msg.ReplyToMessageID = update.Message.MessageID
-		bot.Send(msg)
+		tgBot.Send(msg)
 	}
+	//tgbotapi.NewMessage(cfg.BotApi.ChatId, "推送")
 }

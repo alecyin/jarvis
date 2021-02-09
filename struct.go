@@ -26,7 +26,7 @@ type Way interface {
 type Cfg struct {
 	HttpPort      string
 	SsrConfigFile string
-	BotApi        BotApi
+	TgBot         TgBot
 	Sc            Sc
 	QqMail        QqMail
 	Mcron         Mcron

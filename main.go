@@ -15,7 +15,8 @@ const (
 	configFilePath  = "config/config_new.ini"
 	recordFilePath  = "record/record.txt"
 	ssrNodeFilePath = "config/ssr.yml"
-	cronFilePath    = "config/cron.conf"
+	cronCmdFilePath = "config/cron_cmd.conf"
+	cronJobFilePath = "config/cron_job.conf"
 )
 
 func ParseConfig() {
@@ -40,24 +41,31 @@ func ParseConfig() {
 	if err != nil {
 		glog.Error("parse chatId error,", err)
 	}
-	cfg.BotApi = BotApi{ProxyAddr: proxyAddr, Token: token, ChatId: chatId}
+	cfg.TgBot = TgBot{ProxyAddr: proxyAddr, Token: token, ChatId: chatId, TgApiUrl: "https://api.telegram.org/bot" + token}
 	//node file
 	cfg.SsrConfigFile = cfgFile.Section("ssr").Key("config_file").String()
 	//cron
-	cronFileContent, err := ReadTotalFile(cronFilePath)
+	cronCmdFileContent, err := ReadTotalFile(cronCmdFilePath)
 	if err != nil {
 		glog.Error("load cron config error,", err)
 	}
 	var procInfos []ProcInfo
-	err = json.Unmarshal(cronFileContent, &procInfos)
-	if err != nil {
+	if err = json.Unmarshal(cronCmdFileContent, &procInfos); err != nil {
 		glog.Error("convert cron json array to struct error", err)
 	}
 	u := map[string]*ProcInfo{}
 	for _, procInfo := range procInfos {
 		u[procInfo.Name] = &procInfo
 	}
-	cfg.Mcron = NewMcron(u)
+	cronJobFileContent, err := ReadTotalFile(cronJobFilePath)
+	if err != nil {
+		glog.Error("load cron config error,", err)
+	}
+	var jobs map[string]map[string]string
+	if err = json.Unmarshal(cronJobFileContent, &jobs); err != nil {
+		glog.Error(err)
+	}
+	cfg.Mcron = NewMcron(u, jobs)
 }
 
 func waitExit() {
@@ -79,7 +87,7 @@ func main() {
 	flag.Parse()
 	defer glog.Flush()
 	ParseConfig()
-	//go RunHttpApi()
-	go RunTgBotApi()
+	go RunHttpApi()
+	go cfg.TgBot.Run()
 	waitExit()
 }
