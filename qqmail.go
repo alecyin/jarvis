@@ -16,11 +16,11 @@ type QqMail struct {
 }
 
 func (*QqMail) ConsumeMsg(message Message) interface{} {
-	if cfg == nil || len(cfg.Scs) == 0 {
-		glog.Fatal("none of sc config")
+	if cfg == nil || cfg.QqMail == (QqMail{}) {
+		glog.Fatal("none of qq mail config")
 	}
 
-	qqMail := cfg.QqMails[0]
+	qqMail := cfg.QqMail
 	fromAccount := qqMail.FromAccount
 	toAccount := qqMail.ToAccount
 	authCode := qqMail.AuthCode

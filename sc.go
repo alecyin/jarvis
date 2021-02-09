@@ -13,10 +13,10 @@ type Sc struct {
 }
 
 func (*Sc) ConsumeMsg(message Message) interface{} {
-	if cfg == nil || len(cfg.Scs) == 0 {
+	if cfg == nil || cfg.Sc == (Sc{}) {
 		glog.Fatal("none of sc config")
 	}
-	sckey := cfg.Scs[0].Sckey
+	sckey := cfg.Sc.Sckey
 	scUrl := scApiUrl + sckey + ".send"
 	params := make(map[string]string)
 	params["text"] = message.Title

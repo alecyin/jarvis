@@ -12,6 +12,7 @@ import (
 type BotApi struct {
 	ProxyAddr string
 	Token     string
+	ChatId    int64
 }
 
 func setProxy() {
@@ -40,7 +41,8 @@ func RunTgBotApi() {
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-
+	//msg := tgbotapi.NewMessage(cfg.BotApi.ChatId, "推送")
+	//bot.Send(msg)
 	updates, err := bot.GetUpdatesChan(u)
 
 	for update := range updates {
@@ -53,7 +55,7 @@ func RunTgBotApi() {
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 		if update.Message.Text == "切换节点" {
 			if ChangeNode() {
-				msg.Text = "done"
+				msg.Text = "success"
 			} else {
 				msg.Text = "failure"
 			}
