@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/golang/glog"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"time"
 )
 
 type TgBot struct {
@@ -31,13 +34,18 @@ func (tgBot *TgBot) Run() {
 	transport := &http.Transport{Proxy: func(_ *http.Request) (*url.URL, error) {
 		return url.Parse(cfg.TgBot.ProxyAddr)
 	}}
-	bot, err := tgbotapi.NewBotAPIWithClient(cfg.TgBot.Token, &http.Client{Transport: transport})
-	if err != nil {
-		glog.Error(err)
+	for k := 0; k < 10; k++ {
+		bot, err := tgbotapi.NewBotAPIWithClient(cfg.TgBot.Token, &http.Client{Transport: transport})
+		if err != nil {
+			glog.Errorf("start tg bot err, %s", err)
+			time.Sleep(time.Second * 20)
+			continue
+		}
+		bot.Debug = true
+		tgBot.BotAPI = bot
+		glog.Info("Authorized on account %s", bot.Self.UserName)
+		break
 	}
-	bot.Debug = true
-	tgBot.BotAPI = bot
-	glog.Info("Authorized on account %s", bot.Self.UserName)
 	tgBot.addTgJobsToCron() // ensure initialized
 	tgBot.listen()
 }
@@ -62,6 +70,20 @@ func (tgBot *TgBot) listen() {
 			} else {
 				msg.Text = "failure"
 			}
+		} else if update.Message.Text == "glassinfo" {
+			cmd := exec.Command("/bin/bash", "-c", "tail -12 /home/glass/log/main.INFO")
+			out, err := cmd.Output()
+			if err != nil {
+				glog.Error(err)
+			}
+			msg.Text = string(out)
+		} else if update.Message.Text == "glasserror" {
+			cmd := exec.Command("/bin/bash", "-c", "tail -12 /home/glass/log/main.ERROR")
+			out, err := cmd.Output()
+			if err != nil {
+				glog.Error(err)
+			}
+			msg.Text = string(out)
 		}
 		//msg.ReplyToMessageID = update.Message.MessageID
 		tgBot.Send(msg)
@@ -69,8 +91,20 @@ func (tgBot *TgBot) listen() {
 }
 
 func (tgBot *TgBot) SendToMe(messageConfig tgbotapi.MessageConfig) {
+	if cfg == nil || cfg.TgBot.BotAPI == nil {
+		glog.Error("tg bot not initialized")
+		return
+	}
 	tgBot.Send(messageConfig)
 	//tgbotapi.NewMessage(cfg.BotApi.ChatId, "推送")
+}
+
+func (tgBot *TgBot) SendToMeStr(message string) {
+	if cfg == nil || cfg.TgBot.BotAPI == nil {
+		glog.Error("tg bot not initialized")
+		return
+	}
+	tgBot.Send(tgbotapi.NewMessage(cfg.TgBot.ChatId, message))
 }
 
 func (tgBot *TgBot) addTgJobsToCron() {

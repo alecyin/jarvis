@@ -40,7 +40,20 @@ func (mc *Mcron) AddJobToMcron(jobs map[string]map[string]string) (err error) {
 func (mc *Mcron) AddStageProcToMcron() (err error) {
 	for name, proc := range mc.cmds {
 		p := proc
-		p.RunFun = func() { mc.StartProc(p.Name, nil) }
+		var cb func()
+		if p.Name == "xxx" {
+			cb = func() {
+				time := time.Now().Format("20060102")
+				logPath := "/home/" + p.Name + "/" + p.Name + "." + time + ".log"
+				cmd := exec.Command("/bin/bash", "-c", "tail -5 "+logPath)
+				out, err := cmd.Output()
+				if err != nil {
+					glog.Error(err)
+				}
+				cfg.TgBot.SendToMeStr(string(out))
+			}
+		}
+		p.RunFun = func() { mc.StartProc(p.Name, cb) }
 		// add proc to cron.
 		glog.Info("adding ", name, " to mcron... ")
 		if err := mc.addCmdToCron(p); err != nil {
@@ -72,7 +85,7 @@ func (mc *Mcron) StartProc(name string, c func()) (err error) {
 		return err
 	}
 	Cmd.Wait()
-	glog.Info(name, " stoped and has runned. ")
+	glog.Info(name, " has stopped and has runned. ")
 	if c != nil {
 		c()
 	}
