@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 )
 
 type TgBot struct {
@@ -32,14 +31,14 @@ func (tgBot *TgBot) Run() {
 	transport := &http.Transport{Proxy: func(_ *http.Request) (*url.URL, error) {
 		return url.Parse(cfg.TgBot.ProxyAddr)
 	}}
-	bot, err := tgbotapi.NewBotAPIWithClient(cfg.TgBot.Token, &http.Client{Transport: transport, Timeout: 10 * time.Second})
+	bot, err := tgbotapi.NewBotAPIWithClient(cfg.TgBot.Token, &http.Client{Transport: transport})
 	if err != nil {
 		glog.Error(err)
-		return
 	}
 	bot.Debug = true
 	tgBot.BotAPI = bot
 	glog.Info("Authorized on account %s", bot.Self.UserName)
+	tgBot.addTgJobsToCron() // ensure initialized
 	tgBot.listen()
 }
 
@@ -54,7 +53,7 @@ func (tgBot *TgBot) listen() {
 			continue
 		}
 
-		glog.Info("[%s] %s", update.Message.From.UserName, update.Message.Text)
+		glog.Infof("recive message from bot, [%s] %s", update.Message.From.UserName, update.Message.Text)
 
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 		if update.Message.Text == "切换节点" {
@@ -67,5 +66,27 @@ func (tgBot *TgBot) listen() {
 		//msg.ReplyToMessageID = update.Message.MessageID
 		tgBot.Send(msg)
 	}
+}
+
+func (tgBot *TgBot) SendToMe(messageConfig tgbotapi.MessageConfig) {
+	tgBot.Send(messageConfig)
 	//tgbotapi.NewMessage(cfg.BotApi.ChatId, "推送")
+}
+
+func (tgBot *TgBot) addTgJobsToCron() {
+	jobs := cfg.Mcron.jobs
+	dwj := NewDailyWordJob(jobs["TG_DailyWordJob"]["name"], jobs["TG_DailyWordJob"]["schedule"])
+	if _, err := cfg.Mcron.cronEngine.AddJob(dwj.Schedule, dwj); err != nil {
+		glog.Error("add job ", dwj.Name, " error:", err)
+		fmt.Print(err)
+	}
+}
+
+func (tgBot *TgBot) ConsumeMsg(message Message) interface{} {
+	if cfg == nil || cfg.TgBot.BotAPI == nil {
+		glog.Error("tg bot not initialized")
+		return failure
+	}
+	tgBot.SendToMe(tgbotapi.NewMessage(tgBot.ChatId, fmt.Sprintf("%s\n%s", message.Title, message.Content)))
+	return success
 }

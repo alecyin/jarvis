@@ -55,7 +55,8 @@ func ParseConfig() {
 	}
 	u := map[string]*ProcInfo{}
 	for _, procInfo := range procInfos {
-		u[procInfo.Name] = &procInfo
+		p := procInfo
+		u[procInfo.Name] = &p
 	}
 	cronJobFileContent, err := ReadTotalFile(cronJobFilePath)
 	if err != nil {

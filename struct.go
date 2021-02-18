@@ -37,4 +37,5 @@ type Message struct {
 	Content  string `json:"content"`
 	Original string `json:"original"`
 	MailName string `json:"mailName"`
+	Way      string `json:"way"`
 }

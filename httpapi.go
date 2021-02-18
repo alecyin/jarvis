@@ -30,6 +30,7 @@ func RunHttpApi() {
 			Title:    title,
 			Content:  content,
 			Original: original,
+			Way:      way,
 		}
 		// choose strategic
 		var consumer Consumer
@@ -38,6 +39,8 @@ func RunHttpApi() {
 		} else if way == "qqmail" {
 			message.MailName = c.DefaultQuery("name", "")
 			consumer.setWay(&QqMail{})
+		} else if way == "tg" {
+			consumer.setWay(&cfg.TgBot)
 		}
 		go RecordMessage(message)
 		result := consumer.Send(message)

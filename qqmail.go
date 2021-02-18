@@ -17,7 +17,8 @@ type QqMail struct {
 
 func (*QqMail) ConsumeMsg(message Message) interface{} {
 	if cfg == nil || cfg.QqMail == (QqMail{}) {
-		glog.Fatal("none of qq mail config")
+		glog.Error("none of qq mail config")
+		return failure
 	}
 
 	qqMail := cfg.QqMail

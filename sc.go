@@ -14,7 +14,8 @@ type Sc struct {
 
 func (*Sc) ConsumeMsg(message Message) interface{} {
 	if cfg == nil || cfg.Sc == (Sc{}) {
-		glog.Fatal("none of sc config")
+		glog.Error("none of sc config")
+		return failure
 	}
 	sckey := cfg.Sc.Sckey
 	scUrl := scApiUrl + sckey + ".send"

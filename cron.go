@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/golang/glog"
 	"github.com/robfig/cron/v3"
 	"os/exec"
@@ -18,7 +17,8 @@ type ProcInfo struct {
 }
 
 type Mcron struct {
-	stage      map[string]*ProcInfo // All the proc from file
+	cmds       map[string]*ProcInfo // All the proc from file
+	jobs       map[string]map[string]string
 	cronEngine *cron.Cron
 }
 
@@ -26,27 +26,24 @@ func NewMcron(procInfos map[string]*ProcInfo, jobs map[string]map[string]string)
 	var mc Mcron
 	mc.cronEngine = cron.New()
 	mc.cronEngine.Start()
-	mc.stage = procInfos
+	mc.cmds = procInfos
+	mc.jobs = jobs
 	mc.AddStageProcToMcron()
 	mc.AddJobToMcron(jobs)
 	return mc
 }
 
 func (mc *Mcron) AddJobToMcron(jobs map[string]map[string]string) (err error) {
-	dwj := NewDailyWordJob(jobs["DailyWordJob"]["name"], jobs["DailyWordJob"]["schedule"])
-	if _, err := mc.cronEngine.AddJob(dwj.Schedule, dwj); err != nil {
-		glog.Error("add job ", dwj.Name, " error:", err)
-		fmt.Print(err)
-	}
 	return nil
 }
 
 func (mc *Mcron) AddStageProcToMcron() (err error) {
-	for name, proc := range mc.stage {
-		proc.RunFun = func() { mc.StartProc(proc.Name) }
+	for name, proc := range mc.cmds {
+		p := proc
+		p.RunFun = func() { mc.StartProc(p.Name, nil) }
 		// add proc to cron.
 		glog.Info("adding ", name, " to mcron... ")
-		if err := mc.addCmdToCron(proc); err != nil {
+		if err := mc.addCmdToCron(p); err != nil {
 			glog.Error("adding ", name, " to mcron error:", err)
 			continue
 		}
@@ -64,11 +61,11 @@ func (mc *Mcron) RefreshMcron() {
 	mc.cronEngine.Start()
 	glog.Info(" mcron started! ")
 	time.Sleep(2 * time.Second)
-	mc.stage = make(map[string]*ProcInfo)
+	mc.cmds = make(map[string]*ProcInfo)
 }
 
-func (mc *Mcron) StartProc(name string) (err error) {
-	Cmd := exec.Command(mc.stage[name].Run, mc.stage[name].Args...)
+func (mc *Mcron) StartProc(name string, c func()) (err error) {
+	Cmd := exec.Command(mc.cmds[name].Run, mc.cmds[name].Args...)
 	glog.Info("now starting ", name)
 	if err = Cmd.Start(); err != nil {
 		glog.Error("run ", name, " err:", err)
@@ -76,13 +73,16 @@ func (mc *Mcron) StartProc(name string) (err error) {
 	}
 	Cmd.Wait()
 	glog.Info(name, " stoped and has runned. ")
+	if c != nil {
+		c()
+	}
 	return nil
 }
 
 func (mc *Mcron) removeFromCron(name string) {
-	mc.cronEngine.Remove(mc.stage[name].EntryID)
-	delete(mc.stage, name)
-	glog.Info(name, " has been removed from stage and cron engine")
+	mc.cronEngine.Remove(mc.cmds[name].EntryID)
+	delete(mc.cmds, name)
+	glog.Info(name, " has been removed from cmds and cron engine")
 }
 
 func (mc *Mcron) addCmdToCron(proc *ProcInfo) (err error) {
