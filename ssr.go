@@ -98,12 +98,38 @@ func ChangeNode() bool {
 		glog.Error(err)
 		return false
 	}
-	out, err := exec.Command("/usr/local/bin/ssr", "restart").Output()
+	_, err = exec.Command("/bin/bash", "-c", "/usr/local/bin/ssr", "restart").Output()
 	if err != nil {
-		glog.Error("exec command error,", err)
+		glog.Error("exec command ssr restart error,", err)
 		return false
 	}
-	output := string(out[:])
-	glog.Info(output)
+	glog.Info("successful call ssr restart")
+	//output := string(out[:])
+	//glog.Info(output)
 	return true
+}
+
+func pingGoogleTest() {
+	cmd := exec.Command("/bin/bash", "-c", "curl  -x "+cfg.TgBot.ProxyAddr+" --connect-timeout 2 --retry 3 google.com")
+	out, err := cmd.Output()
+	if err == nil && strings.Contains(string(out), "html") {
+		glog.Info("proxy is normal")
+		return
+	}
+	glog.Info("proxy is abnormal")
+	if err != nil {
+		glog.Error(err)
+	}
+	i := 3
+	for !ChangeNode() && i > 0 {
+		glog.Info("change proxy failure,retry")
+		i--
+	}
+}
+
+func addSsrJobsToCron() {
+	jobs := cfg.Mcron.jobs
+	if _, err := cfg.Mcron.cronEngine.AddFunc(jobs["SSR_ChangeNode"]["schedule"], pingGoogleTest); err != nil {
+		glog.Error("add job SSR_ChangeNode error:", err)
+	}
 }

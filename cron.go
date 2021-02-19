@@ -8,6 +8,7 @@ import (
 )
 
 type ProcInfo struct {
+	Nickname string   `json:"nickname"`
 	Name     string   `json:"name"`
 	Schedule string   `json:"schedule"`
 	Run      string   `json:"run"`
@@ -28,12 +29,15 @@ func NewMcron(procInfos map[string]*ProcInfo, jobs map[string]map[string]string)
 	mc.cronEngine.Start()
 	mc.cmds = procInfos
 	mc.jobs = jobs
-	mc.AddStageProcToMcron()
-	mc.AddJobToMcron(jobs)
 	return mc
 }
 
-func (mc *Mcron) AddJobToMcron(jobs map[string]map[string]string) (err error) {
+func (mc *Mcron) AddCmdAndJob() {
+	mc.AddStageProcToMcron()
+	mc.AddJobToMcron()
+	addSsrJobsToCron()
+}
+func (mc *Mcron) AddJobToMcron() (err error) {
 	return nil
 }
 
@@ -41,7 +45,7 @@ func (mc *Mcron) AddStageProcToMcron() (err error) {
 	for name, proc := range mc.cmds {
 		p := proc
 		var cb func()
-		if p.Name == "xxx" {
+		if p.Name == "wyy" || p.Name == "smzdm" || p.Name == "mistepupdate" {
 			cb = func() {
 				time := time.Now().Format("20060102")
 				logPath := "/home/" + p.Name + "/" + p.Name + "." + time + ".log"
