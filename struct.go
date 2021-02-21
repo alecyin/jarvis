@@ -1,5 +1,7 @@
 package main
 
+import "github.com/go-ini/ini"
+
 var (
 	cfg *Cfg
 )
@@ -24,12 +26,9 @@ type Way interface {
 }
 
 type Cfg struct {
+	cfgFile       *ini.File
 	HttpPort      string
 	SsrConfigFile string
-	TgBot         TgBot
-	Sc            Sc
-	QqMail        QqMail
-	Mcron         Mcron
 }
 
 type Message struct {

@@ -6,8 +6,18 @@ import (
 	"github.com/golang/glog"
 )
 
-func RunHttpApi() {
-	glog.Info("port:", cfg.HttpPort)
+type HttpApi struct {
+	port string
+}
+
+func NewHttpApi() *HttpApi {
+	port := cfg.cfgFile.Section("http server").Key("port").String()
+	return &HttpApi{
+		port: port,
+	}
+}
+
+func (httpApi *HttpApi) Run() {
 	r := gin.Default()
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -35,12 +45,12 @@ func RunHttpApi() {
 		// choose strategic
 		var consumer Consumer
 		if way == "sc" {
-			consumer.setWay(&Sc{})
+			consumer.setWay(NewSc())
 		} else if way == "qqmail" {
 			message.MailName = c.DefaultQuery("name", "")
-			consumer.setWay(&QqMail{})
+			consumer.setWay(NewQqMail())
 		} else if way == "tg" {
-			consumer.setWay(&cfg.TgBot)
+			consumer.setWay(GetTgBotIns())
 		}
 		go RecordMessage(message)
 		result := consumer.Send(message)
@@ -51,5 +61,6 @@ func RunHttpApi() {
 		c.String(200, fmt.Sprintf("%v", result))
 		return
 	})
-	r.Run(":" + cfg.HttpPort)
+	glog.Info("http run on port:", httpApi.port)
+	r.Run(":" + httpApi.port)
 }

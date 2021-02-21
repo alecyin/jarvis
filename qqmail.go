@@ -15,13 +15,18 @@ type QqMail struct {
 	ToAccount   string
 }
 
-func (*QqMail) ConsumeMsg(message Message) interface{} {
-	if cfg == nil || cfg.QqMail == (QqMail{}) {
-		glog.Error("none of qq mail config")
-		return failure
+func NewQqMail() *QqMail {
+	fromAccount := cfg.cfgFile.Section("qq_mail").Key("from_account").String()
+	toAccount := cfg.cfgFile.Section("qq_mail").Key("to_account").String()
+	authCode := cfg.cfgFile.Section("qq_mail").Key("auth_code").String()
+	return &QqMail{
+		FromAccount: fromAccount,
+		ToAccount:   toAccount,
+		AuthCode:    authCode,
 	}
+}
 
-	qqMail := cfg.QqMail
+func (qqMail *QqMail) ConsumeMsg(message Message) interface{} {
 	fromAccount := qqMail.FromAccount
 	toAccount := qqMail.ToAccount
 	authCode := qqMail.AuthCode

@@ -12,13 +12,15 @@ type Sc struct {
 	Sckey string
 }
 
-func (*Sc) ConsumeMsg(message Message) interface{} {
-	if cfg == nil || cfg.Sc == (Sc{}) {
-		glog.Error("none of sc config")
-		return failure
+func NewSc() *Sc {
+	sckey := cfg.cfgFile.Section("sc").Key("SCKEY").String()
+	return &Sc{
+		Sckey: sckey,
 	}
-	sckey := cfg.Sc.Sckey
-	scUrl := scApiUrl + sckey + ".send"
+}
+
+func (sc *Sc) ConsumeMsg(message Message) interface{} {
+	scUrl := scApiUrl + sc.Sckey + ".send"
 	params := make(map[string]string)
 	params["text"] = message.Title
 	params["desp"] = message.Content

@@ -6,6 +6,8 @@ import (
 	"gopkg.in/yaml.v2"
 	"os/exec"
 	"strings"
+	"sync"
+	"time"
 )
 
 type Ssr struct {
@@ -30,9 +32,35 @@ type Ssr struct {
 	ConnectVerboseInfo  int         `json:"connect_verbose_info"`
 	Redirect            string      `json:"redirect"`
 	FastOpen            bool        `json:"fast_open"`
+	Available           bool
 }
 
-func ParseNodeFile() map[string]interface{} {
+var ssr *Ssr
+var sOnce sync.Once
+
+func GetSsrIns() *Ssr {
+	sOnce.Do(func() {
+		ssr = newSsr()
+	})
+	return ssr
+}
+
+func newSsr() *Ssr {
+	s := new(Ssr)
+	content, err := ReadTotalFile(cfg.SsrConfigFile)
+	if err != nil {
+		glog.Error("read ssr config file error,", err)
+		return nil
+	}
+	err = json.Unmarshal(content, &s)
+	if err != nil {
+		glog.Error("read ssr config file error,", err)
+		return nil
+	}
+	return s
+}
+
+func (ssr *Ssr) parseNodeFile() map[string]interface{} {
 	content, err := ReadTotalFile(ssrNodeFilePath)
 	if err != nil {
 		glog.Error("read ssr node file error, ", err)
@@ -46,24 +74,8 @@ func ParseNodeFile() map[string]interface{} {
 	return result
 }
 
-func ReadCurrentSsrConfig() *Ssr {
-	content, err := ReadTotalFile(cfg.SsrConfigFile)
-	if err != nil {
-		glog.Error("read ssr config file error,", err)
-		return nil
-	}
-	var ssr Ssr
-	err = json.Unmarshal(content, &ssr)
-	if err != nil {
-		glog.Error("read ssr config file error,", err)
-		return nil
-	}
-	return &ssr
-}
-
-func ChangeNode() bool {
-	res := ParseNodeFile()
-	ssr := ReadCurrentSsrConfig()
+func (ssr *Ssr) ChangeNode() bool {
+	res := ssr.parseNodeFile()
 	nodes := res["proxies"].([]interface{})
 	flag := false // is current node
 	for i := 0; i < len(nodes); i++ {
@@ -109,27 +121,30 @@ func ChangeNode() bool {
 	return true
 }
 
-func pingGoogleTest() {
-	cmd := exec.Command("/bin/bash", "-c", "curl  -x "+cfg.TgBot.ProxyAddr+" --connect-timeout 2 --retry 3 google.com")
-	out, err := cmd.Output()
-	if err == nil && strings.Contains(string(out), "html") {
-		glog.Info("proxy is normal")
-		return
-	}
-	glog.Info("proxy is abnormal")
-	if err != nil {
-		glog.Error(err)
-	}
-	i := 3
-	for !ChangeNode() && i > 0 {
-		glog.Info("change proxy failure,retry")
-		i--
+func (ssr *Ssr) ServiceabilityTest() {
+	for {
+		cmd := exec.Command("/bin/bash", "-c", "curl  -x "+GetTgBotIns().ProxyAddr+" --connect-timeout 2 --retry 3 -I www.google.com")
+		out, err := cmd.Output()
+		if err == nil && strings.Contains(string(out), "HTTP/1.1 200 OK") {
+			glog.Info("proxy is normal")
+			time.Sleep(5 * time.Minute)
+			continue
+		}
+		glog.Info("proxy is abnormal")
+		if err != nil {
+			glog.Error(err)
+		}
+		i := 3
+		for !ssr.ChangeNode() && i > 0 {
+			glog.Info("change proxy failure,retry")
+			i--
+		}
 	}
 }
 
-func addSsrJobsToCron() {
-	jobs := cfg.Mcron.jobs
-	if _, err := cfg.Mcron.cronEngine.AddFunc(jobs["SSR_ChangeNode"]["schedule"], pingGoogleTest); err != nil {
-		glog.Error("add job SSR_ChangeNode error:", err)
-	}
-}
+//func (ssr *Ssr) addSsrJobsToCron() {
+//	jobs := cfg.Mcron.jobs
+//	if _, err := cfg.Mcron.cronEngine.AddFunc(jobs["SSR_ChangeNode"]["schedule"], pingGoogleTest); err != nil {
+//		glog.Error("add job SSR_ChangeNode error:", err)
+//	}
+//}

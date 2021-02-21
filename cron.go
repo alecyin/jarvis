@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/golang/glog"
 	"github.com/robfig/cron/v3"
 	"os/exec"
+	"sync"
 	"time"
 )
 
@@ -23,20 +25,51 @@ type Mcron struct {
 	cronEngine *cron.Cron
 }
 
-func NewMcron(procInfos map[string]*ProcInfo, jobs map[string]map[string]string) Mcron {
-	var mc Mcron
+var mc *Mcron
+var mcOnce sync.Once
+
+func GetMcronIns() *Mcron {
+	mcOnce.Do(func() {
+		mc = newMcron()
+	})
+	return mc
+}
+
+func newMcron() *Mcron {
+	cronCmdFileContent, err := ReadTotalFile(cronCmdFilePath)
+	if err != nil {
+		glog.Error("load cron config error,", err)
+	}
+	var procInfos []ProcInfo
+	if err = json.Unmarshal(cronCmdFileContent, &procInfos); err != nil {
+		glog.Error("convert cron json array to struct error", err)
+	}
+	u := map[string]*ProcInfo{}
+	for _, procInfo := range procInfos {
+		p := procInfo
+		u[procInfo.Name] = &p
+	}
+	cronJobFileContent, err := ReadTotalFile(cronJobFilePath)
+	if err != nil {
+		glog.Error("load cron config error,", err)
+	}
+	var jobs map[string]map[string]string
+	if err = json.Unmarshal(cronJobFileContent, &jobs); err != nil {
+		glog.Error(err)
+	}
+	mc := new(Mcron)
 	mc.cronEngine = cron.New()
-	mc.cronEngine.Start()
-	mc.cmds = procInfos
+	mc.cmds = u
 	mc.jobs = jobs
 	return mc
 }
 
-func (mc *Mcron) AddCmdAndJob() {
+func (mc *Mcron) Run() {
 	mc.AddStageProcToMcron()
 	mc.AddJobToMcron()
-	addSsrJobsToCron()
+	mc.cronEngine.Start()
 }
+
 func (mc *Mcron) AddJobToMcron() (err error) {
 	return nil
 }
@@ -54,7 +87,7 @@ func (mc *Mcron) AddStageProcToMcron() (err error) {
 				if err != nil {
 					glog.Error(err)
 				}
-				cfg.TgBot.SendToMeStr(string(out))
+				GetTgBotIns().SendToMeStr(p.Nickname + "\n" + string(out))
 			}
 		}
 		p.RunFun = func() { mc.StartProc(p.Name, cb) }
