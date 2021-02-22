@@ -46,6 +46,7 @@ func main() {
 	flag.Parse()
 	defer glog.Flush()
 	ParseConfig()
+	go GetMcronIns().Run()
 	go GetSsrIns().ServiceabilityTest()
 	go NewHttpApi().Run()
 	go GetTgBotIns().Run()

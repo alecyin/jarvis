@@ -40,7 +40,6 @@ func newTgBot() *TgBot {
 		ChatId:    chatId,
 		TgApiUrl:  "https://api.telegram.org/bot" + token,
 	}
-	t.initBotConn()
 	return t
 }
 
@@ -76,6 +75,7 @@ func (tgBot *TgBot) initBotConn() {
 }
 
 func (tgBot *TgBot) Run() {
+	tgBot.initBotConn()
 	tgBot.addTgJobsToCron()
 
 	u := tgbotapi.NewUpdate(0)
@@ -126,12 +126,20 @@ func (tgBot *TgBot) Run() {
 }
 
 func (tgBot *TgBot) SendToMe(messageConfig tgbotapi.MessageConfig) {
-	tgBot.Send(messageConfig)
+	if _, err := tgBot.Send(messageConfig); err != nil {
+		glog.Error("tg send to me error,", err)
+		return
+	}
+	glog.Info("tg send to me success")
 	//tgbotapi.NewMessage(cfg.BotApi.ChatId, "推送")
 }
 
 func (tgBot *TgBot) SendToMeStr(message string) {
-	tgBot.Send(tgbotapi.NewMessage(tgBot.ChatId, message))
+	if _, err := tgBot.Send(tgbotapi.NewMessage(tgBot.ChatId, message)); err != nil {
+		glog.Error("tg send to me str error,", err)
+		return
+	}
+	glog.Info("tg send to me str success")
 }
 
 func (tgBot *TgBot) addTgJobsToCron() {
@@ -139,6 +147,8 @@ func (tgBot *TgBot) addTgJobsToCron() {
 	dwj := NewDailyWordJob(jobs["TG_DailyWordJob"]["name"], jobs["TG_DailyWordJob"]["schedule"])
 	if _, err := GetMcronIns().cronEngine.AddJob(dwj.Schedule, dwj); err != nil {
 		glog.Error("add job ", dwj.Name, " error:", err)
+	} else {
+		glog.Info(dwj.Name, " has been added to mcron")
 	}
 }
 

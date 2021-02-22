@@ -32,7 +32,6 @@ type Ssr struct {
 	ConnectVerboseInfo  int         `json:"connect_verbose_info"`
 	Redirect            string      `json:"redirect"`
 	FastOpen            bool        `json:"fast_open"`
-	Available           bool
 }
 
 var ssr *Ssr
@@ -70,12 +69,16 @@ func (ssr *Ssr) parseNodeFile() map[string]interface{} {
 	err = yaml.Unmarshal(content, &result)
 	if err != nil {
 		glog.Error("error: ", err)
+		return nil
 	}
 	return result
 }
 
 func (ssr *Ssr) ChangeNode() bool {
 	res := ssr.parseNodeFile()
+	if res == nil {
+		return false
+	}
 	nodes := res["proxies"].([]interface{})
 	flag := false // is current node
 	for i := 0; i < len(nodes); i++ {
@@ -95,9 +98,9 @@ func (ssr *Ssr) ChangeNode() bool {
 			if node["server"].(string) == ssr.Server && node["port"].(int) == ssr.ServerPort {
 				flag = true
 			}
-			if i == len(nodes)-1 { // start over
-				i = 0
-			}
+		}
+		if i == len(nodes)-1 { // start over
+			i = 0
 		}
 	}
 
@@ -122,8 +125,9 @@ func (ssr *Ssr) ChangeNode() bool {
 }
 
 func (ssr *Ssr) ServiceabilityTest() {
+	proxyAddr := cfg.cfgFile.Section("tg_bot").Key("proxy_addr").String()
 	for {
-		cmd := exec.Command("/bin/bash", "-c", "curl  -x "+GetTgBotIns().ProxyAddr+" --connect-timeout 2 --retry 3 -I www.google.com")
+		cmd := exec.Command("/bin/bash", "-c", "curl  -x "+proxyAddr+" --connect-timeout 2 --retry 3 -I www.google.com")
 		out, err := cmd.Output()
 		if err == nil && strings.Contains(string(out), "HTTP/1.1 200 OK") {
 			glog.Info("proxy is normal")

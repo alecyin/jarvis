@@ -91,15 +91,13 @@ func (mc *Mcron) AddStageProcToMcron() (err error) {
 			}
 		}
 		p.RunFun = func() { mc.StartProc(p.Name, cb) }
-		// add proc to cron.
-		glog.Info("adding ", name, " to mcron... ")
 		if err := mc.addCmdToCron(p); err != nil {
-			glog.Error("adding ", name, " to mcron error:", err)
+			glog.Error("add ", name, " to mcron error:", err)
 			continue
 		}
-		glog.Info(name, " has been added to mcron.")
+		glog.Info(name, " has been added to mcron")
 	}
-	return
+	return nil
 }
 
 func (mc *Mcron) RefreshMcron() {
