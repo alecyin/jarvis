@@ -126,8 +126,9 @@ func (ssr *Ssr) ChangeNode() bool {
 
 func (ssr *Ssr) ServiceabilityTest() {
 	proxyAddr := cfg.cfgFile.Section("tg_bot").Key("proxy_addr").String()
+	testUrl := cfg.cfgFile.Section("ssr").Key("test_url").String()
 	for {
-		cmd := exec.Command("/bin/bash", "-c", "curl  -x "+proxyAddr+" --connect-timeout 2 --retry 3 -I www.google.com")
+		cmd := exec.Command("/bin/bash", "-c", "curl  -x "+proxyAddr+" --connect-timeout 2 --retry 3 -I "+testUrl)
 		out, err := cmd.Output()
 		if err == nil && strings.Contains(string(out), "HTTP/1.1 200 OK") {
 			glog.Info("proxy is normal")
