@@ -42,6 +42,36 @@ func waitExit() {
 	}
 }
 
+var eventByName = make(map[string][]func(interface{}) interface{})
+
+func RegisterEvent(name string, callback func(interface{}) interface{}) {
+	list := eventByName[name]
+	list = append(list, callback)
+	eventByName[name] = list
+}
+
+func CallEventWhenFail(name string, param interface{}) {
+	list := eventByName[name]
+	for _, callback := range list {
+		if r, _ := callback(param).(bool); r { // success
+			break
+		}
+	}
+}
+
+func CallEvent(name string, param interface{}) {
+	list := eventByName[name]
+	for _, callback := range list {
+		callback(param)
+	}
+}
+
+func InitEvent() {
+	RegisterEvent("OnMessageCome", GetTgBotIns().ConsumeMsg)
+	RegisterEvent("OnMessageCome", NewSc().ConsumeMsg)
+	RegisterEvent("OnMessageCome", NewQqMail().ConsumeMsg)
+}
+
 func main() {
 	flag.Parse()
 	defer glog.Flush()
@@ -50,5 +80,6 @@ func main() {
 	go GetSsrIns().ServiceabilityTest()
 	go NewHttpApi().Run()
 	go GetTgBotIns().Run()
+	go InitEvent()
 	waitExit()
 }

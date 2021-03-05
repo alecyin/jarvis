@@ -152,7 +152,11 @@ func (tgBot *TgBot) addTgJobsToCron() {
 	}
 }
 
-func (tgBot *TgBot) ConsumeMsg(message Message) interface{} {
+func (tgBot *TgBot) ConsumeMsg(param interface{}) interface{} {
+	message, ok := param.(Message)
+	if !ok {
+		return false
+	}
 	tgBot.SendToMe(tgbotapi.NewMessage(tgBot.ChatId, fmt.Sprintf("%s\n%s", message.Title, message.Content)))
-	return success
+	return true
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/golang/glog"
-	"io/ioutil"
 )
 
 const scApiUrl = "https://sc.ftqq.com/"
@@ -19,7 +18,11 @@ func NewSc() *Sc {
 	}
 }
 
-func (sc *Sc) ConsumeMsg(message Message) interface{} {
+func (sc *Sc) ConsumeMsg(param interface{}) interface{} {
+	message, ok := param.(Message)
+	if !ok {
+		return false
+	}
 	scUrl := scApiUrl + sc.Sckey + ".send"
 	params := make(map[string]string)
 	params["text"] = message.Title
@@ -27,17 +30,9 @@ func (sc *Sc) ConsumeMsg(message Message) interface{} {
 	res, err := Get(scUrl, params, nil)
 	if err != nil {
 		glog.Error("send to sc error", err)
-		return nil
+		return false
 	}
 	//dismiss original result
-	if message.Original == "0" {
-		res, _ := ParseResponse(res)
-		if fmt.Sprintf("%v", res["errno"]) == "0" { //success
-			return success
-		}
-		return failure
-	}
-
-	body, _ := ioutil.ReadAll(res.Body)
-	return string(body)
+	r, _ := ParseResponse(res)
+	return fmt.Sprintf("%v", r["errno"]) == "0"
 }

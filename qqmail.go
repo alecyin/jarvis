@@ -26,7 +26,11 @@ func NewQqMail() *QqMail {
 	}
 }
 
-func (qqMail *QqMail) ConsumeMsg(message Message) interface{} {
+func (qqMail *QqMail) ConsumeMsg(param interface{}) interface{} {
+	message, ok := param.(Message)
+	if !ok {
+		return false
+	}
 	fromAccount := qqMail.FromAccount
 	toAccount := qqMail.ToAccount
 	authCode := qqMail.AuthCode
@@ -43,7 +47,7 @@ func (qqMail *QqMail) ConsumeMsg(message Message) interface{} {
 	err := smtp.SendMail(qqSmtpHost+qqSmtpPort, auth, fromAccount, to, msg)
 	if err != nil {
 		glog.Error("send mail error: %v", err)
-		return failure
+		return false
 	}
-	return success
+	return true
 }

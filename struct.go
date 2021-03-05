@@ -22,7 +22,7 @@ func (consumer *Consumer) Send(message Message) interface{} {
 }
 
 type Way interface {
-	ConsumeMsg(message Message) interface{}
+	ConsumeMsg(param interface{}) interface{}
 }
 
 type Cfg struct {
@@ -34,7 +34,6 @@ type Cfg struct {
 type Message struct {
 	Title    string `json:"title"`
 	Content  string `json:"content"`
-	Original string `json:"original"`
 	MailName string `json:"mailName"`
 	Way      string `json:"way"`
 }

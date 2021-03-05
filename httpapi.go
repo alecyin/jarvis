@@ -24,11 +24,13 @@ func (httpApi *HttpApi) Run() {
 			"msg": "pong",
 		})
 	})
+	r.GET("/changenode", func(c *gin.Context) {
+		c.JSON(200, GetSsrIns().ChangeNode())
+	})
 	r.GET("/push", func(c *gin.Context) {
 		way := c.DefaultQuery("way", "sc")
 		title := c.DefaultQuery("title", "")
 		content := c.DefaultQuery("content", "")
-		original := c.DefaultQuery("original", "0")
 		glog.Info("receive message,way:", way, ",title:", title, ",content:", content)
 		if title == "" {
 			c.JSON(400, gin.H{
@@ -37,10 +39,9 @@ func (httpApi *HttpApi) Run() {
 			return
 		}
 		message := Message{
-			Title:    title,
-			Content:  content,
-			Original: original,
-			Way:      way,
+			Title:   title,
+			Content: content,
+			Way:     way,
 		}
 		// choose strategic
 		var consumer Consumer
@@ -54,10 +55,6 @@ func (httpApi *HttpApi) Run() {
 		}
 		go RecordMessage(message)
 		result := consumer.Send(message)
-		if original == "0" { // dismiss original result
-			c.JSON(200, result)
-			return
-		}
 		c.String(200, fmt.Sprintf("%v", result))
 		return
 	})

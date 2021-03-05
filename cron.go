@@ -87,7 +87,10 @@ func (mc *Mcron) AddStageProcToMcron() (err error) {
 				if err != nil {
 					glog.Error(err)
 				}
-				GetTgBotIns().SendToMeStr(p.Nickname + "\n" + string(out))
+				CallEventWhenFail("OnMessageCome", &Message{
+					Title:   p.Nickname,
+					Content: string(out),
+				})
 			}
 		}
 		p.RunFun = func() { mc.StartProc(p.Name, cb) }
