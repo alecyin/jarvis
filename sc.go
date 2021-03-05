@@ -5,7 +5,7 @@ import (
 	"github.com/golang/glog"
 )
 
-const scApiUrl = "https://sc.ftqq.com/"
+const scApiUrl = "https://sctapi.ftqq.com/"
 
 type Sc struct {
 	Sckey string
@@ -34,5 +34,5 @@ func (sc *Sc) ConsumeMsg(param interface{}) interface{} {
 	}
 	//dismiss original result
 	r, _ := ParseResponse(res)
-	return fmt.Sprintf("%v", r["errno"]) == "0"
+	return fmt.Sprintf("%v", r["error"]) == "SUCCESS"
 }

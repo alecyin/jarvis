@@ -87,7 +87,7 @@ func (mc *Mcron) AddStageProcToMcron() (err error) {
 				if err != nil {
 					glog.Error(err)
 				}
-				CallEventWhenFail("OnMessageCome", &Message{
+				CallEventWhenFail("OnMessageCome", Message{
 					Title:   p.Nickname,
 					Content: string(out),
 				})

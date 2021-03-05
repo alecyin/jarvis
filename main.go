@@ -69,6 +69,7 @@ func CallEvent(name string, param interface{}) {
 func InitEvent() {
 	RegisterEvent("OnMessageCome", GetTgBotIns().ConsumeMsg)
 	RegisterEvent("OnMessageCome", NewSc().ConsumeMsg)
+	RegisterEvent("OnMessageCome", GetWeChatIns().ConsumeMsg)
 	RegisterEvent("OnMessageCome", NewQqMail().ConsumeMsg)
 }
 

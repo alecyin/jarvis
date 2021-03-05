@@ -134,12 +134,11 @@ func (tgBot *TgBot) SendToMe(messageConfig tgbotapi.MessageConfig) {
 	//tgbotapi.NewMessage(cfg.BotApi.ChatId, "推送")
 }
 
-func (tgBot *TgBot) SendToMeStr(message string) {
+func (tgBot *TgBot) SendToMeStr(message string) error {
 	if _, err := tgBot.Send(tgbotapi.NewMessage(tgBot.ChatId, message)); err != nil {
-		glog.Error("tg send to me str error,", err)
-		return
+		return err
 	}
-	glog.Info("tg send to me str success")
+	return nil
 }
 
 func (tgBot *TgBot) addTgJobsToCron() {
@@ -157,6 +156,10 @@ func (tgBot *TgBot) ConsumeMsg(param interface{}) interface{} {
 	if !ok {
 		return false
 	}
-	tgBot.SendToMe(tgbotapi.NewMessage(tgBot.ChatId, fmt.Sprintf("%s\n%s", message.Title, message.Content)))
+	if err := tgBot.SendToMeStr(fmt.Sprintf("%s\n%s", message.Title, message.Content)); err != nil {
+		glog.Error("tg send to me str error,", err)
+		return false
+	}
+	glog.Info("tg send to me str success")
 	return true
 }
