@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 )
@@ -88,28 +89,15 @@ func (tgBot *TgBot) Run() {
 			continue
 		}
 
-		glog.Infof("recive message from bot, [%s] %s", update.Message.From.UserName, update.Message.Text)
+		glog.Infof("recive message from bot, %s", update.Message.Text)
 
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-		switch update.Message.Text {
-		case "切换节点":
-			if GetSsrIns().ChangeNode() {
-				msg.Text = "success"
-			} else {
-				msg.Text = "failure"
-			}
-		case "glassinfo", "glasserror", "jarvisinfo", "jarviserror":
-			logCmd := ""
-			if update.Message.Text == "glassinfo" {
-				logCmd = "tail -12 /home/glass/log/main.INFO"
-			} else if update.Message.Text == "glasserror" {
-				logCmd = "tail -12 /home/glass/log/main.ERROR"
-			} else if update.Message.Text == "jarvisinfo" {
-				logCmd = "tail -12 /home/jarvis/log/jarvis.INFO"
-			} else if update.Message.Text == "jarviserror" {
-				logCmd = "tail -12 /home/jarvis/log/jarvis.ERROR"
-			}
-			cmd := exec.Command("/bin/bash", "-c", logCmd)
+		if tgBot.ChatId != update.Message.Chat.ID {
+			glog.Error("wrong chat!chat id is ", update.Message.Chat.ID)
+			continue
+		}
+		if strings.HasPrefix(update.Message.Text, "sec ") {
+			cmd := exec.Command("/bin/bash", "-c", update.Message.Text[4:len(update.Message.Text)])
 			out, err := cmd.Output()
 			if err != nil {
 				glog.Error(err)
@@ -117,8 +105,45 @@ func (tgBot *TgBot) Run() {
 			} else {
 				msg.Text = string(out)
 			}
-		default:
-			msg.Text = update.Message.Text
+		} else {
+			switch update.Message.Text {
+			case "切换节点":
+				if GetSsrIns().ChangeNode() {
+					msg.Text = "success"
+				} else {
+					msg.Text = "failure"
+				}
+			case "proxy0", "proxy1":
+				cmd := exec.Command("/bin/bash", "-c", "/root/"+update.Message.Text+".sh")
+				_, err := cmd.Output()
+				if err != nil {
+					glog.Error(err)
+					msg.Text = fmt.Sprintf("%s", err)
+				} else {
+					msg.Text = "success"
+				}
+			case "glassinfo", "glasserror", "info", "error":
+				logCmd := ""
+				if update.Message.Text == "glassinfo" {
+					logCmd = "tail -12 /home/glass/log/main.INFO"
+				} else if update.Message.Text == "glasserror" {
+					logCmd = "tail -12 /home/glass/log/main.ERROR"
+				} else if update.Message.Text == "info" {
+					logCmd = "tail -12 /home/jarvis/log/jarvis.INFO"
+				} else if update.Message.Text == "error" {
+					logCmd = "tail -12 /home/jarvis/log/jarvis.ERROR"
+				}
+				cmd := exec.Command("/bin/bash", "-c", logCmd)
+				out, err := cmd.Output()
+				if err != nil {
+					glog.Error(err)
+					msg.Text = fmt.Sprintf("%s", err)
+				} else {
+					msg.Text = string(out)
+				}
+			default:
+				msg.Text = update.Message.Text
+			}
 		}
 		//msg.ReplyToMessageID = update.Message.MessageID
 		tgBot.Send(msg)
